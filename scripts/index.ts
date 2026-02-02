@@ -1,6 +1,6 @@
 
 import 'dotenv/config';
-import { createWalletClient, createPublicClient, http, parseEther } from 'viem';
+import { createWalletClient, createPublicClient, http, parseEther, formatEther, zeroHash } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { bsc, bscTestnet } from 'viem/chains';
 import { bitagent } from '@bitagent/sdk';
@@ -108,7 +108,7 @@ async function getAuthenticatedClient() {
     });
 
     // 1. Get Nonce
-    const nonceResponse = await fetch(`${config.authApiBase}/account/nonce?account=${account.address}&chain_id=${config.chain.id}`);
+    const nonceResponse = await fetch(`${config.authApiBase}/nonce?account=${account.address}`);
     if (!nonceResponse.ok) {
         throw new Error(`Failed to fetch nonce: ${nonceResponse.status} ${nonceResponse.statusText} - ${await nonceResponse.text()}`);
     }
@@ -120,17 +120,17 @@ async function getAuthenticatedClient() {
         throw new Error(`Failed to parse nonce response: ${nonceText}`);
     }
 
-    if (!nonceRes.nonce) throw new Error("Failed to get nonce");
+    if (!nonceRes.data || !nonceRes.data.nonce) throw new Error("Failed to get nonce");
 
     // 2. Sign SIWE
     const message = new SiweMessage({
-        domain: nonceRes.domain,
+        domain: nonceRes.data.domain,
         address: account.address,
-        statement: nonceRes.message,
-        uri: nonceRes.uri,
+        statement: nonceRes.data.message,
+        uri: nonceRes.data.uri,
         version: '1',
         chainId: config.chain.id,
-        nonce: nonceRes.nonce,
+        nonce: nonceRes.data.nonce,
         expirationTime: new Date(Date.now() + 86400000).toISOString(), // 24h
     });
 
@@ -139,7 +139,7 @@ async function getAuthenticatedClient() {
     });
 
     // 3. Login
-    const authRes = await fetch(`${config.authApiBase}/account/auth`, {
+    const authRes = await fetch(`${config.authApiBase}/auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,8 +150,21 @@ async function getAuthenticatedClient() {
         })
     });
 
-    if (!authRes.ok) throw new Error(`Auth failed: ${await authRes.text()}`);
-    const { token } = await authRes.json();
+    if (!authRes.ok) {
+        const errorText = await authRes.text();
+        throw new Error(`Auth failed: ${authRes.status} ${authRes.statusText} - ${errorText}`);
+    }
+
+    const authText = await authRes.text();
+    let token;
+    try {
+        const authData = JSON.parse(authText);
+        token = authData.token || authData.data?.token; // Handle nested data structure if present
+    } catch (e) {
+        throw new Error(`Failed to parse auth response: ${authText}`);
+    }
+
+    if (!token) throw new Error("No token returned in auth response");
 
     return { client, token, account };
 }
@@ -159,13 +172,21 @@ async function getAuthenticatedClient() {
 async function getCreatorByToken(tokenAddress: string): Promise<string> {
     try {
         const res = await fetch(`${config.apiBase}/agents?token=${tokenAddress}`);
-        const data = await res.json();
-        if (data.agents && data.agents.length > 0) {
-            return data.agents[0].creator;
+        const json = await res.json();
+        // Check for nested data structure: { data: { agents: [...] } } or { agents: [...] }
+        const agents = json.data?.agents || json.agents;
+        if (agents && agents.length > 0) {
+            return agents[0].creator;
         }
         const res2 = await fetch(`${config.apiBase}/agents/${tokenAddress}`);
-        const data2 = await res2.json();
-        if (data2 && data2.creator) return data2.creator;
+        const json2 = await res2.json();
+        /* 
+           Check for nested data structure: 
+           { data: { creator: ... } } (common wrapper)
+           or { creator: ... } (direct return)
+        */
+        const creator = json2.data?.creator || json2.creator;
+        if (creator) return creator;
     } catch (e) {
         console.warn("Could not fetch creator from API, defaulting to current account might fail if not creator.");
     }
@@ -213,6 +234,10 @@ const commands = {
         const { client, token: authToken, account } = await getAuthenticatedClient();
         const publicClient = createPublicClient({ chain: config.chain, transport: http() });
 
+        const balance = await publicClient.getBalance({ address: account.address });
+        console.log(`Wallet: ${account.address}`);
+        console.log(`Balance: ${formatEther(balance)} ${config.chain.nativeCurrency.symbol}`);
+
         console.log(`🚀 Launching Agent: ${name} ($${symbol}) with reserve ${reserveSymbol}...`);
 
         // SDK Init
@@ -241,7 +266,7 @@ const commands = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // 'Authorization': `Bearer ${authToken}` // Uncomment if API requires Auth header
+                'Authorization': `Bearer ${authToken}`
             },
             body: JSON.stringify(deployPayload)
         });
@@ -251,13 +276,20 @@ const commands = {
             return;
         }
         const agentData = await deployRes.json();
-        console.log(`✅ Agent Registered. Hash: ${agentData.id}`);
+        const agentHash = agentData.data?.id || agentData.id;
+
+        if (!agentHash) {
+            console.error("Failed to get agent ID from API response:", JSON.stringify(agentData));
+            return;
+        }
+
+        console.log(`✅ Agent Registered. Hash: ${agentHash}`);
 
         // Onchain Create
         console.log(`Submitting on-chain transaction...`);
         const txReceipt = await NewToken.create({
             name,
-            agentHash: agentData.id,
+            agentHash,
             reserveToken: { address: reserveConfig.token as `0x${string}`, decimals: reserveConfig.decimals },
             curveData: {
                 curveType: 'EXPONENTIAL',
@@ -269,7 +301,7 @@ const commands = {
             },
             buyRoyalty: 1,
             sellRoyalty: 1,
-            onError: (e: any) => console.error(e)
+            onError: (e: any) => console.error("On-chain creation error:", e)
         });
 
         if (txReceipt && txReceipt.status === 'success') {
