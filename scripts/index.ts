@@ -108,8 +108,17 @@ async function getAuthenticatedClient() {
     });
 
     // 1. Get Nonce
-    const nonceRes = await fetch(`${config.authApiBase}/account/nonce?account=${account.address}&chain_id=${config.chain.id}`)
-        .then(r => r.json());
+    const nonceResponse = await fetch(`${config.authApiBase}/account/nonce?account=${account.address}&chain_id=${config.chain.id}`);
+    if (!nonceResponse.ok) {
+        throw new Error(`Failed to fetch nonce: ${nonceResponse.status} ${nonceResponse.statusText} - ${await nonceResponse.text()}`);
+    }
+    const nonceText = await nonceResponse.text();
+    let nonceRes;
+    try {
+        nonceRes = JSON.parse(nonceText);
+    } catch (e) {
+        throw new Error(`Failed to parse nonce response: ${nonceText}`);
+    }
 
     if (!nonceRes.nonce) throw new Error("Failed to get nonce");
 
