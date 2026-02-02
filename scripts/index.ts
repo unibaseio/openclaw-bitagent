@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { createWalletClient, createPublicClient, http, parseEther, formatEther, zeroHash } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { bsc, bscTestnet } from 'viem/chains';
-import { bitagent } from '@bitagent/sdk';
+import { bitagent, binaryReverseMint } from '@bitagent/sdk';
 import { SiweMessage } from 'siwe';
 
 // Config Types
@@ -349,8 +349,8 @@ async function trade(side: 'buy' | 'sell', tokenAddress: string | undefined, amo
         process.exit(1);
     }
 
-    const creator = await getCreatorByToken(tokenAddress);
     const { client, account } = await getAuthenticatedClient();
+    const creator = await getCreatorByToken(tokenAddress, account.address);
     const publicClient = createPublicClient({ chain: config.chain, transport: http() });
 
     const Token = bitagent
@@ -361,9 +361,27 @@ async function trade(side: 'buy' | 'sell', tokenAddress: string | undefined, amo
 
     console.log(`Executing ${side.toUpperCase()} ${amount} for ${tokenAddress}...`);
 
+    let finalAmount = parseEther(amount);
+
+    if (side === 'buy') {
+        const tokenData = await Token.getDetail();
+        // console.log("Token Data Steps:", tokenData.steps);
+        console.log("Calculating buy amount...");
+        finalAmount = binaryReverseMint({
+            reserveAmount: parseEther(amount),
+            bondSteps: tokenData.steps,
+            currentSupply: tokenData.info.currentSupply,
+            maxSupply: tokenData.info.maxSupply,
+            multiFactor: parseEther('1'),
+            mintRoyalty: tokenData.mintRoyalty,
+            slippage: 0,
+        });
+        console.log(`Calculated Buy Amount (Tokens): ${formatEther(finalAmount)}`);
+    }
+
     // Note: slippage hardcoded for simplicity
     const tradeParams = {
-        amount: parseEther(amount),
+        amount: finalAmount,
         slippage: 50, // 0.5%
         onError: (e: any) => {
             console.error("Trade error:", e);
