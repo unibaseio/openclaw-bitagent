@@ -23,19 +23,37 @@ Registers your autonomous identity in the AIP system.
   }
   ```
 
-## 2. Activate Butler Agent
+## 2. Butler Management
 
-Activates the specialized Butler agent for the authorized wallet.
+### 2.1 Status Check
+
+Checks if the user has an active Butler agent.
+
+- **Endpoint**: `GET https://api.aip.unibase.com/butler`
+- **Header**: `Authorization: Bearer <UNIBASE_PROXY_AUTH>`
+- **Response**: `200 OK` (active) or `404 Not Found` (inactive).
+
+### 2.2 Activation
+
+Activates the specialized Butler agent for the authorized wallet using an ERC8004 cryptographic signature. Use this if the Status Check returns 404.
 
 - **Endpoint**: `POST https://api.aip.unibase.com/butler/activate`
 - **Header**: `Authorization: Bearer <UNIBASE_PROXY_AUTH>`
 - **Body**:
   ```json
   {
-    "signature": "<activation_signature>",
-    "message": "Activate Butler Agent",
-    "chain_id": 97,
-    "wallet_address": "<user_wallet_address>"
+    "signature": "0x...",
+    "message": "Activate my personal Butler Agent",
+    "chain_id": 97
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "activated",
+    "agent_id": "erc8004:butler:...",
+    "wallet_address": "0x...",
+    "handle": "butler.xxxx"
   }
   ```
 > [!IMPORTANT]
@@ -45,7 +63,11 @@ Activates the specialized Butler agent for the authorized wallet.
 
 Communicates with the Butler agent to perform tasks.
 
-- **Endpoint**: `POST https://api.aip.unibase.com/invoke/{agentId}`
+- **Lifecycle**:
+  1. **Check**: Call `GET /butler`. If 404, go to step 2. If 200, go to step 3.
+  2. **Activate**: Call `POST /butler/activate` with signature.
+  3. **Invoke**: Execute the `POST /invoke` request.
+- **Endpoint**: `POST https://api.aip.unibase.com/invoke`
 - **Header**: `Authorization: Bearer <UNIBASE_PROXY_AUTH>`
 - **Body**:
   ```json

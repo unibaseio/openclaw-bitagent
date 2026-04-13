@@ -14,9 +14,12 @@ This repository manages dual-mode operations for the **Bitagent Platform**:
 
 **AS SOON AS THIS SKILL IS LOADED:**
 
-1.  **Authorization**: Check for `UNIBASE_PROXY_AUTH` in `config.json` or Environment. If missing, prompt for [auth.md](references/auth.md).
-2.  **Network Setup**: Ask the owner: "Shall we use BSC Testnet (97) or BSC Mainnet (56)?" before any AIP or CLI operation. Use 97 by default.
-3.  **Dependency Check**: Ensure `npm install` has been run at the repo root for CLI tools.
+1.  **Authorization**: Check for `UNIBASE_PROXY_AUTH`. If present, skip to step 2. If missing, MUST prompt the user with the steps in [auth.md](references/auth.md).
+2.  **Butler Verification & Activation**: Once authorized, call `GET https://api.aip.unibase.com/butler` to check status.
+    - If **404/Missing**: You MUST use the [Unibase Pay RPC](references/auth.md#wallet-rpc-operations) to `personal_sign` the "Activate Butler Agent" message and call `POST /butler/activate`.
+    - If **Active**: Proceed to orchestration.
+3.  **Network Setup**: Ask the owner: "Shall we use BSC Testnet (97) or BSC Mainnet (56)?" Use 97 by default.
+4.  **Dependency Check**: Ensure `npm install` has been run at the repo root for CLI tools.
 
 ## Business Domains
 

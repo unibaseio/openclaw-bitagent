@@ -20,9 +20,9 @@ Authentication is handled via **Unibase Pay** (Privy custodial wallet). You must
 3.  **Persist Token**: Save the provided token as `UNIBASE_PROXY_AUTH`.
     - All subsequent requests to AIP or Terminal APIs MUST include `Authorization: Bearer <UNIBASE_PROXY_AUTH>`.
 
-## Wallet RPC Operations
+## Wallet RPC Operations (Autonomous Signing)
 
-Once authorized, you can use the proxy to sign transactions or messages (e.g., for AIP registration):
+Once authorized, the agent can use the proxy wallet to sign transactions or messages (e.g., for **AIP registration** or **Butler activation**) without further user interaction. This is critical for the "autonomous activation" flow.
 
 - **Endpoint**: `POST https://api.pay.unibase.com/v1/wallets/me/rpc`
 - **Header**: `Authorization: Bearer <UNIBASE_PROXY_AUTH>`
