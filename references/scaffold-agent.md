@@ -40,7 +40,7 @@ pip install -e .
 
 ### Step 2.3: Write the Agent Code
 
-Create the main agent script (e.g., `agent.py`). You **MUST** implement the actual logic for the service they requested.
+**[MANDATORY]** You MUST ALWAYS write a fresh `agent.py` file from scratch using the template below. NEVER reuse an existing `agent.py` on the server — it is likely missing critical fields like `user_id` and will silently fail.
 
 **RULES FOR THE GENERATED CODE:**
 1. The agent must be configured strictly in **Auto Register + POLLING mode** (`endpoint_url=None`, `via_gateway=True`).
@@ -210,33 +210,36 @@ if __name__ == "__main__":
 
 ## 3. Authorize and Start Background Service
 
-After scaffolding the code and writing `agent.py`, you (the AI) must start the service in the background for the user.
+After writing the NEW `agent.py`, you (the AI) must validate then launch it.
+
+**[PRE-LAUNCH CHECKLIST — VERIFY BEFORE STARTING]**
+Before launching, you MUST grep the generated `agent.py` to confirm these lines exist. If ANY are missing, rewrite the file!
+```bash
+grep -q "user_id=" agent.py && echo "✅ user_id" || echo "❌ MISSING user_id"
+grep -q "privy_token=" agent.py && echo "✅ privy_token" || echo "❌ MISSING privy_token"
+grep -q "aip_endpoint=" agent.py && echo "✅ aip_endpoint" || echo "❌ MISSING aip_endpoint"
+grep -q "gateway_url=" agent.py && echo "✅ gateway_url" || echo "❌ MISSING gateway_url"
+grep -q "via_gateway=True" agent.py && echo "✅ via_gateway" || echo "❌ MISSING via_gateway"
+grep -q "extract_wallet_from_token" agent.py && echo "✅ wallet_extract" || echo "❌ MISSING wallet_extract"
+```
+If any line prints ❌, STOP and fix agent.py before proceeding!
 
 **[CRITICAL INSTRUCTION FOR YOU (THE AI)]**
-You must NEVER run the script synchronously or monitor/poll its process! The agent runs an infinite POLLING loop (`server.run_sync()`). If you use any wait, poll, or monitor tools on it, you will lock up and fail!
-Instead, follow this exact sequence to securely start it as a fire-and-forget daemon:
+You must NEVER run `agent.py` synchronously or use any process wait/poll/monitor tools on it! The agent runs an infinite loop. If you wait on it, you will lock up forever and become unresponsive!
 
-1. **Authorization Check**: 
-   Ask the user to provide their Authorization token (if it's not already configured). 
-   Once they give you the token, write it to `unibase-aip-sdk/.env`:
-   ```env
-   UNIBASE_PROXY_AUTH=<the_provided_token>
-   ```
+**Step-by-step launch sequence:**
 
-2. **Kill Existing Process**: 
-   Since `GATEWAY_URL` is forced to port `8081`, you must stop any existing agents taking up that port or running `agent.py` to prevent conflicts:
+1. **Write auth token to `.env`** (if not already present):
    ```bash
-   pkill -f "agent.py" || true
-   lsof -ti:8081 | xargs kill -9 || true
+   echo "UNIBASE_PROXY_AUTH=<the_token>" > ~/unibase-aip-sdk/.env
    ```
 
-3. **Start in Background (FIRE AND FORGET)**: 
-   Launch the agent completely detached. You MUST execute this exact command containing `disown` so the terminal returns immediately, and you MUST NOT use any process monitoring tools afterward!
+2. **Kill old process + Start new one (SINGLE COMMAND, FIRE AND FORGET)**:
    ```bash
-   cd ~/unibase-aip-sdk
-   nohup uv run agent.py > agent.log 2>&1 &
-   disown
+   pkill -f "agent.py" 2>/dev/null; lsof -ti:8201 | xargs kill -9 2>/dev/null; cd ~/unibase-aip-sdk && nohup uv run agent.py > agent.log 2>&1 & disown
    ```
-   *Note: If `uv` is not installed or errors, fallback to `nohup python3 agent.py > agent.log 2>&1 & disown`.*
-   
-Once the command is sent, IMMEDIATELY reply to the user that the service is running in the background and tell them they can view the logs via `cat ~/unibase-aip-sdk/agent.log`. Do not wait for verification!
+
+3. **IMMEDIATELY reply** to the user:
+   > "Agent is now running in the background. Check logs: `tail -f ~/unibase-aip-sdk/agent.log`"
+
+Do NOT run any further commands to check on the process. Do NOT use `wait`, `poll`, `cat /proc`, `ps aux`, or any monitoring tool. Just reply and stop.
