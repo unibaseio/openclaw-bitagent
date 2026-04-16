@@ -29,14 +29,17 @@ cd unibase-aip-sdk
 
 ### Step 2.2: Install Dependencies
 
-Set up the environment and install the SDK:
+Set up the environment and install the SDK using `uv`:
 ```bash
-# Assuming the user is running within the cloned unibase-aip-sdk directory
-python3 -m venv venv
-source venv/bin/activate
-pip install -e .
+# Install uv if not available
+command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+
+cd ~/unibase-aip-sdk
+uv venv
+source .venv/bin/activate
+uv sync
 ```
-*(Also automatically pip install any other third-party dependencies your generated implementation requires, e.g., `requests`, `beautifulsoup4`, etc.)*
+*(Also `uv pip install` any other third-party dependencies your generated implementation requires, e.g., `uv pip install openai`, `uv pip install requests`, etc.)*
 
 ### Step 2.3: Write the Agent Code
 
@@ -67,6 +70,18 @@ These are real bugs that have caused silent failures in production. You MUST avo
 import json
 import base64
 import os
+from pathlib import Path
+
+# Load .env file FIRST (before any other imports that might read env vars)
+# This ensures UNIBASE_PROXY_AUTH is available from .env
+env_path = Path(__file__).parent / ".env"
+if env_path.exists():
+    for line in env_path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, _, value = line.partition("=")
+            os.environ.setdefault(key.strip(), value.strip())
+
 from aip_sdk import expose_as_a2a
 from aip_sdk.types import AgentJobOffering, AgentJobResource, AgentSkillCard, CostModel
 
@@ -227,14 +242,22 @@ If any line prints ❌, STOP and fix agent.py before proceeding!
 **[CRITICAL INSTRUCTION FOR YOU (THE AI)]**
 You must NEVER run `agent.py` synchronously or use any process wait/poll/monitor tools on it! The agent runs an infinite loop. If you wait on it, you will lock up forever and become unresponsive!
 
+**BANNED COMMANDS — NEVER USE THESE:**
+- ❌ `source venv/bin/activate && python3 agent.py` — This runs synchronously and locks you up!
+- ❌ `source .venv/bin/activate && python3 agent.py` — Same problem!
+- ❌ `python3 agent.py` — Same problem! 
+- ❌ Any `wait`, `poll`, `ps aux | grep agent`, `cat /proc`, `tail` AFTER launching
+
 **Step-by-step launch sequence:**
 
-1. **Write auth token to `.env`** (if not already present):
+1. **Write auth token to `.env`** (the variable name MUST be `UNIBASE_PROXY_AUTH`, not `UNIBASE_TOKEN` or anything else):
    ```bash
    echo "UNIBASE_PROXY_AUTH=<the_token>" > ~/unibase-aip-sdk/.env
    ```
+   If `.env` already has `UNIBASE_PROXY_AUTH` set, skip this step.
 
 2. **Kill old process + Start new one (SINGLE COMMAND, FIRE AND FORGET)**:
+   Copy this EXACT command. Do NOT modify it. Do NOT split it into multiple commands:
    ```bash
    pkill -f "agent.py" 2>/dev/null; lsof -ti:8201 | xargs kill -9 2>/dev/null; cd ~/unibase-aip-sdk && nohup uv run agent.py > agent.log 2>&1 & disown
    ```
@@ -242,4 +265,4 @@ You must NEVER run `agent.py` synchronously or use any process wait/poll/monitor
 3. **IMMEDIATELY reply** to the user:
    > "Agent is now running in the background. Check logs: `tail -f ~/unibase-aip-sdk/agent.log`"
 
-Do NOT run any further commands to check on the process. Do NOT use `wait`, `poll`, `cat /proc`, `ps aux`, or any monitoring tool. Just reply and stop.
+Do NOT run any further commands to check on the process. Just reply and stop.
