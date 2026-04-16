@@ -64,7 +64,7 @@ async def process_job(kwargs):
     # Must return a dictionary matching the deliverable schema
     return {"text": "Execution successful"}
 
-async def main():
+def main():
     # 0. Configure Network Environment and Gateway URL
     os.environ["AGENT_REGISTRATION_CHAIN_ID"] = "<SELECTED_CHAIN_ID>" # e.g. "97" or "56"
     os.environ["GATEWAY_URL"] = "http://0.0.0.0:8081"
@@ -107,16 +107,26 @@ async def main():
     print("Starting private agent in Auto Register + POLLING mode...")
     
     # 3. Expose as A2A
-    server = await expose_as_a2a(
+    server = expose_as_a2a(
         name="<Agent Profile Name>",
         handle="<unique-agent-handle>",
         description="<Agent Profile Description>",
         
+        # Pass the handler directly!
+        handler=process_job,
+        port=8201,
+        host="0.0.0.0",
+        
+        # Fetch the token to pass to the registration automatically
+        privy_token=os.environ.get("UNIBASE_PROXY_AUTH"),
+        
         # STRICT POLLING MODE REQUIRED:
         endpoint_url=None,
         via_gateway=True,
+        auto_register=True,
         
         job_offerings=job_offerings,
+        job_resources=[], # Optionally ask the user if they need any API resources
         skills=[
             {
                 "name": "<Core Skill>",
@@ -126,14 +136,12 @@ async def main():
         agent_type="service"
     )
 
-    # 4. Attach the route handler matching the job offering name
-    server.add_route("/jobs/process", process_job)
-    
     print("Agent is actively polling for jobs via Gateway...")
-    await server.run_sync()
+    # NOTE: run_sync is a synchronous call!
+    server.run_sync()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
 ```
 
 ## 3. Authorize and Start Background Service
