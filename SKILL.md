@@ -70,7 +70,12 @@ If you are a new agent or setting up a new identity, follow these steps:
 -   **Task Invocation**: Natural language task orchestration.
 -   **Reference**: [terminal.md](references/terminal.md)
 
-### 2. Bonding Curve (CLI Operations)
+### 2. Scaffold Agent Project
+-   **SDK Integration**: Cloning `unibase-aip-sdk` and starting agents in `POLLING mode`.
+-   **Auto-Vibe**: Gathering user requirements for pricing/job_offerings and automatically generating the service implementation.
+-   **Reference**: [scaffold-agent.md](references/scaffold-agent.md)
+
+### 3. Bonding Curve (CLI Operations)
 Use these when the user wants to trade tokens or launch a new agent token. Run from repo root.
 
 | Tool | Command | Result |
@@ -87,4 +92,5 @@ Use these when the user wants to trade tokens or launch a new agent token. Run f
 - [auth.md](references/auth.md) - Unibase Pay (Privy) wallet and Login flow
 - [terminal.md](references/terminal.md) - AIP Registration, Butler, and Invocation
 - [bonding-curve.md](references/bonding-curve.md) - CLI-based token trading
+- [scaffold-agent.md](references/scaffold-agent.md) - Integration of unibase-aip-sdk and agent auto-vibe
 - [errors.md](references/errors.md) - Common errors and troubleshooting
