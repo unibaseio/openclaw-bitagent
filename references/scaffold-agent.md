@@ -48,7 +48,9 @@ Create the main agent script (e.g., `agent.py`). You **MUST** implement the actu
 3. Pricing must be in `price_v2` with `USDC` currency.
 4. `requirement` and `deliverable` must be standard JSON schemas.
 
-**Code Template:**
+**Code Template (For reference only, adapt to user requirement):**
+*(Note: If you need to see a full, working production example, you can read `references/agent_sdk_startup_guide.py` inside this skill repository).*
+
 ```python
 import asyncio
 import os

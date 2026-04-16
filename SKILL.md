@@ -93,4 +93,5 @@ Use these when the user wants to trade tokens or launch a new agent token. Run f
 - [terminal.md](references/terminal.md) - AIP Registration, Butler, and Invocation
 - [bonding-curve.md](references/bonding-curve.md) - CLI-based token trading
 - [scaffold-agent.md](references/scaffold-agent.md) - Integration of unibase-aip-sdk and agent auto-vibe
+- [agent_sdk_startup_guide.py](references/agent_sdk_startup_guide.py) - Full code template for AIP Agent (Binance price example)
 - [errors.md](references/errors.md) - Common errors and troubleshooting
