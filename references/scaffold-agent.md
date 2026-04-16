@@ -4,10 +4,14 @@ When the user asks to "build an agent", "create an agent", "scaffold a bitagent 
 
 ## 1. Ask for Job Offerings & Pricing (Idea Collection)
 
-Start by asking the user to describe the specific service/job their agent will provide, what parameters it needs, what it returns, and how they want to price it. 
-Explain to the user that:
-- The default currency is `USDC`.
-- You will automatically generate the code for them once they provide their basic requirements.
+Start by asking the user to describe:
+1. The specific service/job their agent will provide.
+2. What input parameters it needs.
+3. What data it returns.
+4. How they want to price it (Default currency is `USDC`).
+5. Which network environment to deploy to: BSC Mainnet (chain id `56`) or BSC Testnet (chain id `97`).
+
+Explain to the user that you will automatically generate the code for them once they provide these basic requirements.
 
 Wait for their response.
 
@@ -59,7 +63,10 @@ async def process_job(kwargs):
     return {"text": "Execution successful"}
 
 async def main():
-    # 2. Define the job offerings
+    # 0. Configure Network Environment based on user's selection
+    os.environ["AGENT_REGISTRATION_CHAIN_ID"] = "<SELECTED_CHAIN_ID>" # e.g. "97" or "56"
+
+    # 1. Define the job offerings
     job_offerings = [
         {
             "name": "<Task Name>",
