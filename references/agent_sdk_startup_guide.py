@@ -231,6 +231,16 @@ def extract_wallet_from_token(token: str) -> str | None:
         return None
 
 
+def find_available_port(start_port: int, max_attempts: int = 50) -> int:
+    """Check sequential ports until an available one is found."""
+    import socket
+    for port in range(start_port, start_port + max_attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(('0.0.0.0', port)) != 0:
+                return port
+    return start_port
+
+
 async def interactive_auth() -> tuple[str, str]:
     """
     Run interactive authorization flow to get UNIBASE_PROXY_AUTH token.
@@ -752,6 +762,9 @@ def example_auto_register():
     agent = BinancePriceAgent()
     endpoint_url = public_url
 
+    # Resolve port dynamically
+    resolved_port = find_available_port(8200)
+
     print(f"\n{'='*70}")
     print("Step 3: Start Agent Service")
     print(f"{'='*70}")
@@ -759,7 +772,7 @@ def example_auto_register():
     server = expose_as_a2a(
         name=name,
         handler=agent.handle,
-        port=8200,
+        port=resolved_port,
         host="0.0.0.0",
         description=description,
         user_id=wallet if wallet else None,
@@ -831,10 +844,13 @@ def example_manual_register():
             name=name,
             description=description,
             endpoint_url=endpoint_url,
-            port=8201,
+            port=find_available_port(8201),
             existing_agent_id=existing_agent_id,
         )
     )
+
+    # Resolve port
+    resolved_port = find_available_port(8201)
 
     server = build_server(
         wallet=wallet,
@@ -843,7 +859,7 @@ def example_manual_register():
         name=name,
         description=description,
         endpoint_url=endpoint_url,
-        port=8201,
+        port=resolved_port,
         polling=False,
     )
     server.run_sync()
@@ -880,10 +896,13 @@ def example_polling_mode():
     print("Step 3: Start Agent Service (POLLING)")
     print(f"{'='*70}")
 
+    # Resolve port
+    resolved_port = find_available_port(8202)
+
     server = expose_as_a2a(
         name=name,
         handler=agent.handle,
-        port=8202,
+        port=resolved_port,
         host="0.0.0.0",
         description=description,
         user_id=wallet if wallet else None,
@@ -947,9 +966,12 @@ def example_polling_manual():
             name=name,
             description=description,
             endpoint_url=None,
-            port=8203,
+            port=find_available_port(8203),
         )
     )
+
+    # Resolve port
+    resolved_port = find_available_port(8203)
 
     server = build_server(
         wallet=wallet,
@@ -958,7 +980,7 @@ def example_polling_manual():
         name=name,
         description=description,
         endpoint_url=None,
-        port=8203,
+        port=resolved_port,
         polling=True,
         via_gateway=True,
     )

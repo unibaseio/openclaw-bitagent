@@ -77,6 +77,6 @@ The `unibase-aip-sdk` logs are verbose. To find the root cause of a failure, che
 **Self-Healing Workflow for AI:**
 1. Execute: `tail -n 100 agent.log`
 2. Search for `Traceback`, `ValueError`, or `pydantic_core._pydantic_core.ValidationError`.
-3. If `ValidationError` is found: Verify if `agent.py` uses the standard `expose_as_a2a` or if you are manually calling an endpoint incorrectly.
-4. If `Logic error` found: Fix the Python implementation in `agent.py`.
+3. If `ValidationError` is found: Verify if your agent script uses the standard `expose_as_a2a` or if you are manually calling an endpoint incorrectly.
+4. If `Logic error` found: Fix the Python implementation in your agent script.
 5. Restart immediately: Use the `nohup` pattern in Step 3.3 of `scaffold-agent.md`.

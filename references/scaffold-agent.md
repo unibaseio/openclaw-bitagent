@@ -48,7 +48,7 @@ uv sync
 
 ### Step 2.3: Write the Agent Code
 
-**[MANDATORY]** You MUST ALWAYS write a fresh `agent.py` file from scratch using the template below. NEVER reuse an existing `agent.py` on the server — it is likely missing critical fields like `user_id` and will silently fail.
+**[MANDATORY]** You MUST ALWAYS write a fresh `agent_{handle}.py` file from scratch (where `{handle}` is the unique agent handle) using the template below. NEVER reuse an existing file — it's likely missing critical fields like `user_id`.
 
 **RULES FOR THE GENERATED CODE:**
 1. The agent must be configured strictly in **Auto Register + POLLING mode** (`endpoint_url=None`, `via_gateway=True`).
@@ -70,7 +70,8 @@ These are real bugs that have caused silent failures in production. You MUST avo
 5. **Use `AgentJobOffering(...)` type** — Do NOT use raw dicts for job_offerings. Use the typed class from `aip_sdk.types`.
 6. **Use `AgentSkillCard(...)` type** — Do NOT use raw dicts for skills. Use the typed class from `aip_sdk.types`.
 7. **Always pass `aip_endpoint` and `gateway_url` explicitly** — Do NOT rely on implicit defaults.
-8. **Use `uv run agent.py`** — Not `python3 agent.py`.
+8. **Use `uv run agent_{handle}.py`** — Not `python3 agent.py`.
+9. **Multi-Agent Support** — Use unique filenames and the `find_available_port` helper to allow multiple agents to coexist on different ports.
 
 **Code Template (For reference only, adapt to user requirement):**
 *(Note: If you need to see a full, working production example, you can read `references/agent_sdk_startup_guide.py` inside this skill repository).*
@@ -95,8 +96,17 @@ from aip_sdk import expose_as_a2a
 from aip_sdk.types import AgentJobOffering, AgentJobResource, AgentSkillCard, CostModel
 
 # ============================================================================
-# Helper: Extract wallet address from JWT token
+# Helpers: Port Discovery and Identity
 # ============================================================================
+
+def find_available_port(start_port: int, max_attempts: int = 50) -> int:
+    """Check sequential ports until an available one is found."""
+    import socket
+    for port in range(start_port, start_port + max_attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(('0.0.0.0', port)) != 0:
+                return port
+    return start_port
 
 def extract_wallet_from_token(token: str) -> str:
     """Decode JWT payload to extract wallet address from 'sub' claim."""
@@ -205,9 +215,12 @@ def main():
         )
     ]
 
-    print("Starting private agent in Auto Register + POLLING mode...")
-    
-    # 3. Expose as A2A
+    # 3. Dynamic Port Discovery (Multi-Agent Support)
+    base_port = int(os.environ.get("AGENT_PORT", "8201"))
+    resolved_port = find_available_port(base_port)
+    print(f"Agent will start on port: {resolved_port}")
+
+    # 4. Expose as A2A
     server = expose_as_a2a(
         name="<Agent Profile Name>",
         handle="<unique-agent-handle>",
@@ -215,7 +228,7 @@ def main():
         
         # Pass the handler directly!
         handler=process_job,
-        port=8201,
+        port=resolved_port,
         host="0.0.0.0",
         
         # CRITICAL: user_id is REQUIRED for registration & polling to work!
@@ -258,25 +271,26 @@ if __name__ == "__main__":
 After writing the NEW `agent.py`, you (the AI) must validate, launch, authorize, then restart it.
 
 **[PRE-LAUNCH CHECKLIST — VERIFY BEFORE STARTING]**
-Before launching, you MUST grep the generated `agent.py` to confirm these lines exist. If ANY are missing, rewrite the file!
+Before launching, you MUST grep the generated `agent_{handle}.py` to confirm these lines exist. If ANY are missing, rewrite the file!
 ```bash
 cd ~/unibase-aip-sdk
-grep -q "user_id=" agent.py && echo "✅ user_id" || echo "❌ MISSING user_id"
-grep -q "privy_token=" agent.py && echo "✅ privy_token" || echo "❌ MISSING privy_token"
-grep -q "aip_endpoint=" agent.py && echo "✅ aip_endpoint" || echo "❌ MISSING aip_endpoint"
-grep -q "gateway_url=" agent.py && echo "✅ gateway_url" || echo "❌ MISSING gateway_url"
-grep -q "via_gateway=True" agent.py && echo "✅ via_gateway" || echo "❌ MISSING via_gateway"
-grep -q "extract_wallet_from_token" agent.py && echo "✅ wallet_extract" || echo "❌ MISSING wallet_extract"
+grep -q "user_id=" agent_{handle}.py && echo "✅ user_id" || echo "❌ MISSING user_id"
+grep -q "privy_token=" agent_{handle}.py && echo "✅ privy_token" || echo "❌ MISSING privy_token"
+grep -q "aip_endpoint=" agent_{handle}.py && echo "✅ aip_endpoint" || echo "❌ MISSING aip_endpoint"
+grep -q "gateway_url=" agent_{handle}.py && echo "✅ gateway_url" || echo "❌ MISSING gateway_url"
+grep -q "via_gateway=True" agent_{handle}.py && echo "✅ via_gateway" || echo "❌ MISSING via_gateway"
+grep -q "extract_wallet_from_token" agent_{handle}.py && echo "✅ wallet_extract" || echo "❌ MISSING wallet_extract"
+grep -q "find_available_port" agent_{handle}.py && echo "✅ port_discovery" || echo "❌ MISSING port_discovery"
 ```
-If any line prints ❌, STOP and fix agent.py before proceeding!
+If any line prints ❌, STOP and fix the agent script before proceeding!
 
 **[CRITICAL INSTRUCTION FOR YOU (THE AI)]**
-You must NEVER run `agent.py` synchronously or use any process wait/poll/monitor tools on it! The agent runs an infinite loop. If you wait on it, you will lock up forever and become unresponsive!
+You must NEVER run the agent script synchronously or use any process wait/poll/monitor tools on it! The agent runs an infinite loop. If you wait on it, you will lock up forever and become unresponsive!
 
 **BANNED COMMANDS — NEVER USE THESE:**
-- ❌ `source venv/bin/activate && python3 agent.py` — This runs synchronously and locks you up!
-- ❌ `source .venv/bin/activate && python3 agent.py` — Same problem!
-- ❌ `python3 agent.py` — Same problem! 
+- ❌ `source venv/bin/activate && python3 agent_{handle}.py` — This runs synchronously and locks you up!
+- ❌ `source .venv/bin/activate && python3 agent_{handle}.py` — Same problem!
+- ❌ `python3 agent_{handle}.py` — Same problem! 
 - ❌ Any `wait`, `poll`, `ps aux | grep agent`, `cat /proc`, `tail` AFTER launching
 
 **Step-by-step launch sequence:**
@@ -308,10 +322,10 @@ The user does NOT have a token yet. Use the API to get an auth URL:
 
 ### Step 3.3: Start in Background (FIRE AND FORGET)
 
-Copy this EXACT command. Do NOT modify it. Do NOT split it into multiple commands.
+Copy this EXACT command. Replace `{handle}` with the actual agent handle.
 **CRITICAL**: The `< /dev/null` and direct virtualenv python path are REQUIRED — without them, the terminal tool will hang waiting for the background process forever!
 ```bash
-pkill -f "agent.py" 2>/dev/null; lsof -ti:8201 | xargs kill -9 2>/dev/null; cd ~/unibase-aip-sdk && nohup .venv/bin/python3 agent.py > agent.log 2>&1 < /dev/null & echo "Agent started, check logs: tail -f ~/unibase-aip-sdk/agent.log"
+pkill -f "agent_{handle}.py" 2>/dev/null; cd ~/unibase-aip-sdk && nohup .venv/bin/python3 agent_{handle}.py > agent_{handle}.log 2>&1 < /dev/null & echo "Agent started, check logs: tail -f ~/unibase-aip-sdk/agent_{handle}.log"
 ```
 
 ## 4. Self-Healing & Troubleshooting
@@ -330,13 +344,13 @@ tail -n 100 ~/unibase-aip-sdk/agent.log
 | :--- | :--- | :--- |
 | `ValueError: Invalid JSON-RPC version` | Missing `"jsonrpc": "2.0"` in a call. | Update the calling logic (see [stability.md](stability.md)). |
 | `ValidationError: messageId/parts required` | Malformed A2A Message object. | Ensure `Message` has `messageId` and `parts` (see [stability.md](stability.md)). |
-| `TypeError: 'coroutine' object ...` | Missing `await` in handler or SDK call. | Find the unawaited call in `agent.py` and fix it. |
+| `TypeError: 'coroutine' object ...` | Missing `await` in handler or SDK call. | Find the unawaited call in the agent script and fix it. |
 | `Timeout connecting to server` (Redis) | Network/Firewall issue. | Verify `REDIS_URL` and security groups (port 6379). |
 | `Agent registered successfully` (but no polling) | Missing `user_id` or `via_gateway=True`. | Verify these required params in `expose_as_a2a()`. |
 
 ### 4.3 Automated Fix Protocol
 1. **Identify**: Find the `Exception` or `Traceback` in `agent.log`.
-2. **Read Code**: Use `view_file` to read the current `agent.py`.
+2. **Read Code**: Use `view_file` to read the current agent script (`agent_{handle}.py`).
 3. **Execute Fix**: Apply a `replace_file_content` to fix the bug.
 4. **Restart**: Re-run the background start command from **Step 3.3**.
 5. **Verify**: Check `tail -n 100 agent.log` again to ensure "Starting Gateway polling loop" appears.
