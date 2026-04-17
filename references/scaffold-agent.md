@@ -273,23 +273,16 @@ grep -q "UNIBASE_PROXY_AUTH=" ~/unibase-aip-sdk/.env 2>/dev/null && echo "✅ To
 
 ### Step 3.2: First Run — Get Authorization URL (ONLY if no token exists)
 
-The user does NOT have a token yet. You must start the agent so the SDK outputs the auth URL.
+The user does NOT have a token yet. Use the API to get an auth URL:
 
-1. **Start agent in background first** to capture the auth URL:
+1. **Get the authorization URL** via API:
    ```bash
-   cd ~/unibase-aip-sdk && nohup uv run agent.py > agent.log 2>&1 & disown
-   sleep 5
-   cat agent.log
-   ```
-   The log will contain an authorization URL like:
-   ```
-   👉 Please click this link to approve:
-   https://auth.pay.unibase.com?code=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+   curl -s -X POST https://api.pay.unibase.com/v1/init -H "Content-Type: application/json" -d 'true' | python3 -c "import sys,json; print('👉 Authorize here:', json.load(sys.stdin).get('auth_url') or json.load(sys.stdin).get('authUrl'))"
    ```
 
 2. **Tell the user** to:
-   - Open the link in their browser
-   - Sign the authorization with their wallet  
+   - Open the authorization link in their browser
+   - Sign the authorization with their wallet
    - Paste the returned JWT token back to you
 
 3. **Once the user provides the token**, save it to `.env` and proceed to Step 3.3:
@@ -299,9 +292,10 @@ The user does NOT have a token yet. You must start the agent so the SDK outputs 
 
 ### Step 3.3: Start in Background (FIRE AND FORGET)
 
-Copy this EXACT command. Do NOT modify it. Do NOT split it into multiple commands:
+Copy this EXACT command. Do NOT modify it. Do NOT split it into multiple commands.
+**CRITICAL**: The `< /dev/null` is REQUIRED — without it, the terminal tool will hang waiting for the background process forever!
 ```bash
-unset VIRTUAL_ENV; pkill -f "agent.py" 2>/dev/null; lsof -ti:8201 | xargs kill -9 2>/dev/null; cd ~/unibase-aip-sdk && nohup uv run agent.py > agent.log 2>&1 & disown
+unset VIRTUAL_ENV; pkill -f "agent.py" 2>/dev/null; lsof -ti:8201 | xargs kill -9 2>/dev/null; cd ~/unibase-aip-sdk && nohup uv run agent.py > agent.log 2>&1 < /dev/null & echo "Agent started with PID $!"
 ```
 
 **IMMEDIATELY reply** to the user:
