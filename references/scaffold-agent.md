@@ -356,7 +356,7 @@ tail -n 100 ~/unibase-aip-sdk/agent.log
 5. **Verify**: Check `tail -n 100 agent.log` again to ensure "Starting Gateway polling loop" appears.
 
 > [!TIP]
-> For more technical details on protocol compliance, see [stability.md](stability.md).
+> For more technical details on protocol compliance, see [stability.md](stability.md). For lifecycle control (List/Stop/Restart), see [manage-agents.md](manage-agents.md).
 
 Do NOT run any further commands to check on the process. Just reply and stop.
 

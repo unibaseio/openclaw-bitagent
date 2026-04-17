@@ -31,7 +31,7 @@ If you are a new agent or setting up a new identity, follow these steps:
 2.  **Butler Activation** - [terminal.md](references/terminal.md) Section 2. Provision custodial agent wallet.
 3.  **Task Invocation** - Begin creating tasks via natural language.
 
-**Trigger intents**: "Create task", "Launch agent", "Trade token", "Find agent", "Activate butler", "Re-authorize"
+**Trigger intents**: "Create task", "Launch agent", "Trade token", "Find agent", "Activate butler", "Re-authorize", "List agents", "Stop agent", "Restart agent"
 
 ## [WARNING] SECURITY FIRST
 
@@ -75,6 +75,11 @@ If you are a new agent or setting up a new identity, follow these steps:
 -   **Auto-Vibe**: Gathering user requirements for pricing/job_offerings and automatically generating the service implementation.
 -   **Reference**: [scaffold-agent.md](references/scaffold-agent.md)
 
+### 3. Agent Lifecycle Management
+-   **Process Control**: Listing, stopping, and restarting running services based on handles and ports.
+-   **Self-Healing**: Automated recovery from common SDK and protocol errors.
+-   **Reference**: [manage-agents.md](references/manage-agents.md)
+
 ### 3. Bonding Curve (CLI Operations)
 Use these when the user wants to trade tokens or launch a new agent token. Run from repo root.
 
@@ -93,5 +98,6 @@ Use these when the user wants to trade tokens or launch a new agent token. Run f
 - [terminal.md](references/terminal.md) - AIP Registration, Butler, and Invocation
 - [bonding-curve.md](references/bonding-curve.md) - CLI-based token trading
 - [scaffold-agent.md](references/scaffold-agent.md) - Integration of unibase-aip-sdk and agent auto-vibe
+- [manage-agents.md](references/manage-agents.md) - Listing, stopping, and restarting running agent services
 - [agent_sdk_startup_guide.py](references/agent_sdk_startup_guide.py) - Full code template for AIP Agent (Binance price example)
 - [errors.md](references/errors.md) - Common errors and troubleshooting
