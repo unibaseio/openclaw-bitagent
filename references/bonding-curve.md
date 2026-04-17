@@ -7,7 +7,7 @@ This reference defines the CLI-only business processes for interacting with BitA
 Before executing any CLI commands, ensure the following are met:
 
 1.  **Dependencies**: Run `npm install` at the repository root.
-2.  **Wallet Credentials**: A `PRIVATE_KEY` (0x...) must be configured in your environment or OpenClaw config.
+2.  **Wallet Credentials**: A `PRIVATE_KEY` (0x...) must be configured in your environment or configuration file.
 3.  **Network Awareness**: Confirm with the owner whether to use `bsc` (Mainnet) or `bscTestnet` (Testnet).
 
 ## 🚀 Launch Agent Token

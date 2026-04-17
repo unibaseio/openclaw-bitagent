@@ -1,87 +1,70 @@
-# OpenClaw Skills for BitAgent
+# BitAgent Skill
 
-**BitAgent** skill pack for [OpenClaw](https://github.com/openclaw/openclaw).
+**BitAgent Skill** is a universal platform pack for autonomous agents. It provides a standardized interface for identity registration (ERC-8183), task orchestration (Terminal), and bonding curve trading on the BitAgent platform.
 
-This package allows OpenClaw agents to interact with BitAgent bonding curves on BSC Mainnet and Testnet. Agents can launch new tokens, and buy or sell existing tokens directly through this skill.
+This pack is designed to be framework-agnostic and is fully compatible with:
+- **Hermes** (Agentic OS)
+- **OpenClaw** (CLI Plugin system)
+- **Claude Code** (Direct command execution)
+- **AutoGPT / BabyAGI**
+- Any agent capable of executing shell commands and making HTTP requests.
 
-The skill runs via the CLI plugin at **scripts/index.ts**, which provides the following capabilities: `launch`, `buy`, `sell`.
+## Key Capabilities
 
-## Installation from Source
+1.  **Terminal (ERC-8183) Flow**: Unified API for identity activation, wallet provisioning (Terminal), and natural language task execution.
+2.  **Bonding Curve Trading**: CLI-based tools for launching agent tokens, buying, and selling on BSC Mainnet and Testnet.
+3.  **Agent Scaffolding**: Reference implementations and instructions for building new AIP-compliant agents.
 
-1. Clone the openclaw-bitagent repository with:
+---
 
-   ```bash
-   git clone https://github.com/unibaseio/openclaw-bitagent bitagent-skill
-   ```
+## Installation
 
-   Make sure the repository cloned is renamed to `bitagent-skill` as this is the skill name.
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/unibaseio/bitagent-skills bitagent-skill
+    ```
 
-2. **Add the skill directory** to OpenClaw config (`~/.openclaw/openclaw.json`):
+2.  **Install dependencies**:
+    ```bash
+    cd bitagent-skill
+    npm install
+    ```
 
-   ```json
-   {
-     "skills": {
-       "load": {
-         "extraDirs": ["/path/to/bitagent-skill"]
-       }
-     }
-   }
-   ```
+## Configuration
 
-   Use the path to the root of this repository.
+The skill pack typically requires a `PRIVATE_KEY` for on-chain operations and a `UNIBASE_PROXY_AUTH` token for API operations.
 
-3. **Install dependencies**:
+### Environment Variables
 
-   ```bash
-   cd /path/to/bitagent-skill
-   npm install
-   ```
+Configure these in your environment or your agent's specific skill configuration:
 
-## Configure Credentials
+| Variable | Description |
+| :--- | :--- |
+| `PRIVATE_KEY` | Wallet private key (0x...) for on-chain bonding curve trading. |
+| `UNIBASE_PROXY_AUTH` | JWT token for Terminal/AIP API authentication. |
 
-**Configure credentials** under `skills.entries.bitagent-skill.env`:
+---
 
-```json
-{
-  "skills": {
-    "entries": {
-      "bitagent-skill": {
-        "enabled": true,
-        "env": {
-          "PRIVATE_KEY": "0x..."
-        }
-      }
-    }
-  }
-}
-```
+## Framework Integration
 
-| Variable      | Description                                      |
-| ------------- | ------------------------------------------------ |
-| `PRIVATE_KEY` | Wallet private key (0x...) for the agent wallet. |
+### OpenClaw
+Add the directory to your `openclaw.json` under `extraDirs`.
 
-**Note**: Chain selection (BSC Mainnet vs Testnet) is handled via the `--network` CLI flag (see SKILL.md) and does not require an environment variable.
+### Claude Code
+Simply keep this directory in your workspace and point the assistant to `SKILL.md`.
 
-## How it works
+### Hermes
+Register this as a local skill and allow it to execute the business logic in `scripts/index.ts`.
 
-- The pack exposes one skill: **`bitagent-skill`**.
-- The **SKILL.md** instructs the agent on how to use the CLI tools.
-- The plugin **scripts/index.ts** is the CLI implementation.
+---
 
-**Capabilities**:
-| Capability | Command Pattern | Description |
-| ---------- | --------------- | ----------- |
-| `launch` | `npx tsx scripts/index.ts launch ...` | Deploys a new agent token on a bonding curve. |
-| `buy` | `npx tsx scripts/index.ts buy ...` | Buys a specific amount of tokens. |
-| `sell` | `npx tsx scripts/index.ts sell ...` | Sells a specific amount of tokens. |
+## Technical Structure
 
-## Repository Structure
+- **SKILL.md**: The "Brain" of the pack. Contains the high-level instructions and triggers for the AI agent.
+- **scripts/index.ts**: The "Muscle". Provides the CLI implementation for complex on-chain logic.
+- **references/**: Deep-dive documentation for specific business domains (Auth, Terminal, Scaffolding, etc.).
 
-```
-bitagent-skill/
-├── SKILL.md           # Skill instructions for the agent
-├── package.json       # Dependencies for the CLI
-├── scripts/
-│   └── index.ts       # CLI implementation
-├── README.md
-```
+---
+
+## License
+MIT
