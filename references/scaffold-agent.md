@@ -11,7 +11,12 @@ Start by asking the user to describe:
 4. How they want to price it (Default currency is `USDC`).
 5. Which network environment to deploy to: BSC Mainnet (chain id `56`) or BSC Testnet (chain id `97`).
 
-Explain to the user that you will automatically generate the code for them once they provide these basic requirements.
+### 1.1 Analyze and Brainstorm Implementation
+Before generating any code, you MUST mentally (or via a thought block) brainstorm how to implement the logic. 
+- Can this be done with standard Python libraries?
+- Does it require a specialized API (e.g., Binance, Weather, Search)?
+- Does it require an LLM (e.g., for story generation, creative writing, analysis)?
+- **CRITICAL**: Do NOT use placeholders. If the user wants a story generator, you must include logic that either generates a story using a sophisticated template OR (better) integrates an LLM API.
 
 Wait for their response.
 
@@ -50,6 +55,10 @@ uv sync
 2. The `job_offerings` must incorporate the user's desired service details.
 3. Pricing must be in `price_v2` with `USDC` currency.
 4. `requirement` and `deliverable` must be standard JSON schemas.
+5. **FUNCTIONAL COMPLETENESS**: Use your internal reasoning to implement the core logic. 
+   - ❌ FORBIDDEN: `return "Success"` or placeholder strings.
+   - ✅ MANDATORY: If the user asks for a Story Generator, implement `generate_story` with actual creative logic or an LLM call.
+   - ✅ MANDATORY: If an LLM is used, include the `openai` package in `uv pip install` and add `OPENAI_API_KEY` to the `.env` instructions.
 
 **⚠️ CRITICAL GOTCHAS — READ BEFORE WRITING ANY CODE:**
 These are real bugs that have caused silent failures in production. You MUST avoid ALL of them:
@@ -124,11 +133,18 @@ def process_job(message_text: str) -> str:
         # Not JSON — treat the entire message as the primary input
         kwargs = {"input": message_text}
     
-    # Write actual python code implementing the user's idea!
-    # Access your input: kwargs.get("your_field") or kwargs.get("input")
+    # ========================================================================
+    # VIBE CHECK: Write actual python code implementing the user's idea!
+    # ========================================================================
+    # If the user wants creative writing, you might use a template or LLM:
+    # story = f"Once upon a time in {kwargs.get('location')}, {kwargs.get('input')}..."
+    # 
+    # If the user wants an LLM:
+    # client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    # response = client.chat.completions.create(...)
     
     # Must return a JSON string matching the deliverable schema
-    return json.dumps({"text": "Execution successful"})
+    return json.dumps({"text": "Full implemented result based on user vibe"})
 
 # ============================================================================
 # Main
@@ -298,8 +314,35 @@ Copy this EXACT command. Do NOT modify it. Do NOT split it into multiple command
 pkill -f "agent.py" 2>/dev/null; lsof -ti:8201 | xargs kill -9 2>/dev/null; cd ~/unibase-aip-sdk && nohup .venv/bin/python3 agent.py > agent.log 2>&1 < /dev/null & echo "Agent started, check logs: tail -f ~/unibase-aip-sdk/agent.log"
 ```
 
-**IMMEDIATELY reply** to the user:
-> "Agent is now running in the background. Check logs: `tail -f ~/unibase-aip-sdk/agent.log`"
+## 4. Self-Healing & Troubleshooting
+
+As an AI assistant, you are responsible for the agent's stability. If the agent starts but fails to respond to jobs, follow this self-healing protocol.
+
+### 4.1 Check Logs Immediately
+Always run this command after starting or if a failure is reported:
+```bash
+tail -n 100 ~/unibase-aip-sdk/agent.log
+```
+
+### 4.2 Diagnostic & Fix Table
+
+| Error in Log | Root Cause | Fix Action |
+| :--- | :--- | :--- |
+| `ValueError: Invalid JSON-RPC version` | Missing `"jsonrpc": "2.0"` in a call. | Update the calling logic (see [stability.md](stability.md)). |
+| `ValidationError: messageId/parts required` | Malformed A2A Message object. | Ensure `Message` has `messageId` and `parts` (see [stability.md](stability.md)). |
+| `TypeError: 'coroutine' object ...` | Missing `await` in handler or SDK call. | Find the unawaited call in `agent.py` and fix it. |
+| `Timeout connecting to server` (Redis) | Network/Firewall issue. | Verify `REDIS_URL` and security groups (port 6379). |
+| `Agent registered successfully` (but no polling) | Missing `user_id` or `via_gateway=True`. | Verify these required params in `expose_as_a2a()`. |
+
+### 4.3 Automated Fix Protocol
+1. **Identify**: Find the `Exception` or `Traceback` in `agent.log`.
+2. **Read Code**: Use `view_file` to read the current `agent.py`.
+3. **Execute Fix**: Apply a `replace_file_content` to fix the bug.
+4. **Restart**: Re-run the background start command from **Step 3.3**.
+5. **Verify**: Check `tail -n 100 agent.log` again to ensure "Starting Gateway polling loop" appears.
+
+> [!TIP]
+> For more technical details on protocol compliance, see [stability.md](stability.md).
 
 Do NOT run any further commands to check on the process. Just reply and stop.
 
