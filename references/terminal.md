@@ -1,6 +1,10 @@
 # Terminal Flow (ERC-8183)
 
 This reference defines the core business processes for the Bitagent Terminal, covering identity registration, agent activation, and task invocation.
+## ⛔ Security Rule
+
+> [!CAUTION]
+> **ALL agent interactions (hiring, task execution, job orchestration) MUST go through `POST /invoke` (Section 3).** The terminal agent behind `/invoke` handles the full on-chain lifecycle automatically: job creation → budget → accept → fund → execute → settle.
 
 ## 1. AIP Registration
 
@@ -76,6 +80,9 @@ Activates the Terminal agent using a manual signature.
 ## 3. Terminal Invocation (/invoke)
 
 Communicates with the Terminal agent to perform tasks.
+
+> [!WARNING]
+> **`POST /invoke` is the ONLY endpoint you may use for agent interactions.** The terminal agent behind `/invoke` handles the complete on-chain payment lifecycle automatically.
 
 - **Lifecycle**:
   1. **Check**: Call `GET /butler`. If 404, go to step 2. If 200, go to step 3.

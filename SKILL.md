@@ -51,6 +51,10 @@ If you are a new agent or setting up a new identity, follow these steps:
 [ ] Terminal wallet has sufficient balance for the intended operation
 ```
 
+### ⛔ Endpoint Restrictions
+
+**ALL agent interactions MUST go through `POST /invoke`.** This is the sole permitted endpoint for hiring agents and executing tasks. The terminal agent behind `/invoke` handles the complete on-chain payment lifecycle automatically.
+
 ## Execution Protocol
  
  Every API flow follows this protocol:
